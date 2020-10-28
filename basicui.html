@@ -1,0 +1,61 @@
+<html>
+
+<style>
+/* Adding somewhat basic styling to page so the canvas fills the
+   entire screen, and the options div hovers in top-right corner.
+   NOTE: the generated image will be stretched!  To correct, see
+   http://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+*/
+body {
+    margin: 0px;
+    overflow: hidden;
+}
+canvas {
+    background-color: white;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+}
+div#ui {
+    position: fixed;
+    right: 0px;
+    top: 0px;
+    margin: 10px;
+    border: 1px solid rgb(128,128,128);
+    background-color: rgba(192,192,192,0.75);
+}
+div#ui table {
+    margin: 5px;
+}
+div#ui td *, div#ui th * {
+    width: 100%;
+}
+</style>
+
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+    <table>
+    <tr><th colspan="2">Options</th></tr>
+    <tr><td><label for="rng">Range</label></td><td><input type="range" id="rng" name="rng" min="0" max="100" value="20"></td></tr>
+    <tr><td><label for="dd">Dropdown</label></td><td><select id="dd" name="dd"><option value="0">zero</option><option value="1" selected>one</option><option value="2">two</option></select></td></tr>
+    <tr><td><label for="chk">Checkbox</label></td><td><input type="checkbox" id="chk" name="chk"></td></tr>
+    <tr><td colspan="2"><button onclick="alert('clicked!');">Button</button></td></tr>
+    </table>
+</div>
+</body>
+
+
+<script type="notjs" id="2d-vertex-shader">
+// Place Vertex Shader code here
+</script>
+
+<script type="notjs" id="2d-fragment-shader">
+// Place Fragment Shader code here
+</script>
+
+<script>
+// Place Javascript code here
+</script>
+
+</html>

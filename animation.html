@@ -1,0 +1,61 @@
+<html>
+
+<style>
+/* Adding somewhat basic styling to page so the canvas fills the
+   entire screen, and the options div hovers in top-right corner.
+   NOTE: the generated image will be stretched!  To correct, see
+   http://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+*/
+body {
+    margin: 0px;
+    overflow: hidden;
+}
+canvas {
+    background-color: white;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+}
+div#ui {
+    position: fixed;
+    right: 0px;
+    top: 0px;
+    margin: 10px;
+    border: 1px solid rgb(128,128,128);
+    background-color: rgba(192,192,192,0.75);
+}
+div#ui table {
+    margin: 5px;
+}
+div#ui td *, div#ui th * {
+    width: 100%;
+}
+</style>
+
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+    <table>
+    <tr><th colspan="2">Options</th></tr>
+    <tr><td><label for="speed">Speed</label></td><td><input type="range" id="speed" name="speed" min="0" max="200" value="100"></td></tr>
+    </table>
+</div>
+</body>
+
+<!-- include 3x3 matrix math library -->
+<script src="lib/2d-math.js"></script>
+
+<script type="notjs" id="2d-vertex-shader">
+// Place Vertex Shader code here
+</script>
+
+<script type="notjs" id="2d-fragment-shader">
+// Place Fragment Shader code here
+</script>
+
+<script>
+// Place Javascript code here
+</script>
+
+
+</html>

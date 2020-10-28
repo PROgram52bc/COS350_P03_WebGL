@@ -1,0 +1,49 @@
+<html>
+
+<style>
+/* Adding very basic styling to page so the canvas can be seen */
+body {
+    background-color: rgb(224,224,224);
+}
+canvas {
+    background-color: rgb(255,255,255);
+    border: 1px solid rgb(192,192,192);
+}
+</style>
+
+<body>
+<canvas id="c"></canvas>
+</body>
+
+
+<script type="notjs" id="2d-vertex-shader">
+#version 300 es
+in vec4 position;
+void main() {
+	gl_Position = position;
+}
+</script>
+
+<script type="notjs" id="2d-fragment-shader">
+// Place Fragment Shader code here
+</script>
+
+<script>
+// Place Javascript code here
+function createShader(gl, type, source) {
+	var shader = gl.createShader(type); // type is 'gl.VERTEX_SHADER' or 'gl.FRAGMENT_SHADER'
+	gl.shaderSource(shader, source); // specify the shader source
+	gl.compileShader(shader); // compile the shader
+	var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+	if (success) {
+		return shader;
+	}
+	console.log("Failed to compile shader");
+	console.log(gl.getShaderInfoLog(shader));
+
+	gl.deleteShader(shader);
+}
+</script>
+
+
+</html>
