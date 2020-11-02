@@ -125,9 +125,9 @@
 				offset
 			);
 
-			// webglUtils.resizeCanvasToDisplaySize(gl.canvas);
-
 			// Tell WebGL how to convert from clip space to pixels
+			gl.canvas.width = gl.canvas.clientWidth;
+			gl.canvas.height = gl.canvas.clientHeight;
 			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
 			// Clear the canvas
@@ -141,6 +141,8 @@
 			gl.bindVertexArray(vao);
 
 			// draw
+			// add a for loop to draw a number of rectangles.
+			// see https://webgl2fundamentals.org/webgl/lessons/webgl-fundamentals.html
 			var primitiveType = gl.TRIANGLES;
 			var offset = 0;
 			var count = 3;
