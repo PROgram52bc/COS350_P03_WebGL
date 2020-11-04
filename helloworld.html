@@ -5,6 +5,8 @@
 			background-color: rgb(224, 224, 224);
 		}
 		canvas {
+			width: 100%;
+			height: 100%;
 			background-color: rgb(255, 255, 255);
 			border: 1px solid rgb(192, 192, 192);
 		}
@@ -23,10 +25,10 @@
 
 	<script type="notjs" id="2d-fragment-shader">
 		precision highp float;
-		in vec4 position;
+		uniform vec4 u_color;
 		out vec4 color;
 		void main() {
-			color = vec4(1,0,0.5,1);
+			color = u_color;
 		}
 	</script>
 
@@ -61,6 +63,22 @@
 			gl.deleteProgram(program);
 			return undefined;
 		}
+		function setColor(gl, colorLocation, color) {
+			gl.uniform4f(colorLocation, ...color);
+		}
+		function drawRectangle(gl, x, y, width, height) {
+			let x1 = x,
+				x2 = x + width,
+				y1 = y,
+				y2 = y + height;
+			var positions = [x1, y1, x1, y2, x2, y2, x2, y2, x1, y1, x2, y1];
+			gl.bufferData(
+				gl.ARRAY_BUFFER,
+				new Float32Array(positions),
+				gl.STATIC_DRAW
+			);
+			gl.drawArrays(gl.TRIANGLES, 0, 6);
+		}
 		function main() {
 			console.log("Hello");
 			var canvas = document.querySelector("#c");
@@ -89,18 +107,16 @@
 				program,
 				"position"
 			);
+
+			var colorUniformLocation = gl.getUniformLocation(
+				program,
+				"u_color"
+			);
 			// Create a buffer and put three 2d clip space points in it
 			var positionBuffer = gl.createBuffer();
 			// Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
 			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
-			// create the buffer data
-			var positions = [0, 0, 0, 0.5, 0.7, 0];
-			gl.bufferData(
-				gl.ARRAY_BUFFER,
-				new Float32Array(positions),
-				gl.STATIC_DRAW
-			);
 			// Create a vertex array object (attribute state)
 			var vao = gl.createVertexArray();
 
@@ -137,16 +153,26 @@
 			// Tell it to use our program (pair of shaders)
 			gl.useProgram(program);
 
-			// Bind the attribute/buffer set we want.
-			gl.bindVertexArray(vao);
-
-			// draw
-			// add a for loop to draw a number of rectangles.
-			// see https://webgl2fundamentals.org/webgl/lessons/webgl-fundamentals.html
-			var primitiveType = gl.TRIANGLES;
-			var offset = 0;
-			var count = 3;
-			gl.drawArrays(primitiveType, offset, count);
+			// var primitiveType = gl.TRIANGLES;
+			// var offset = 0;
+			// var count = 3;
+			// gl.drawArrays(primitiveType, offset, count);
+			for (let i = 0; i < 50; i++) {
+				setColor(gl, colorUniformLocation, [
+					Math.random(),
+					Math.random(),
+					Math.random(),
+					1
+				]);
+				drawRectangle(
+					gl,
+					Math.random() * 2 - 1,
+					Math.random() * 2 - 1,
+					Math.random() * 2 - 1,
+					Math.random() * 2 - 1,
+					Math.random() * 2 - 1
+				);
+			}
 		}
 		main();
 	</script>
