@@ -1,61 +1,198 @@
 <html>
-
-<style>
-/* Adding somewhat basic styling to page so the canvas fills the
+	<style>
+		/* Adding somewhat basic styling to page so the canvas fills the
    entire screen, and the options div hovers in top-right corner.
    NOTE: the generated image will be stretched!  To correct, see
    http://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
 */
-body {
-    margin: 0px;
-    overflow: hidden;
-}
-canvas {
-    background-color: white;
-    width: 100vw;
-    height: 100vh;
-    display: block;
-}
-div#ui {
-    position: fixed;
-    right: 0px;
-    top: 0px;
-    margin: 10px;
-    border: 1px solid rgb(128,128,128);
-    background-color: rgba(192,192,192,0.75);
-}
-div#ui table {
-    margin: 5px;
-}
-div#ui td *, div#ui th * {
-    width: 100%;
-}
-</style>
+		body {
+			margin: 0px;
+			overflow: hidden;
+		}
+		canvas {
+			background-color: white;
+			width: 100vw;
+			height: 100vh;
+			display: block;
+		}
+		div#ui {
+			position: fixed;
+			right: 0px;
+			top: 0px;
+			margin: 10px;
+			border: 1px solid rgb(128, 128, 128);
+			background-color: rgba(192, 192, 192, 0.75);
+		}
+		div#ui table {
+			margin: 5px;
+		}
+		div#ui td *,
+		div#ui th * {
+			width: 100%;
+		}
+	</style>
 
-<body>
-<canvas id="c"></canvas>
-<div id="ui">
-    <table>
-    <tr><th colspan="2">Options</th></tr>
-    <tr><td><label for="speed">Speed</label></td><td><input type="range" id="speed" name="speed" min="0" max="200" value="100"></td></tr>
-    </table>
-</div>
-</body>
+	<body>
+		<canvas id="c"></canvas>
+		<div id="ui">
+			<table>
+				<tr>
+					<th colspan="2">Options</th>
+				</tr>
+				<tr>
+					<td><label for="speed">Speed</label></td>
+					<td>
+						<input
+							type="range"
+							id="speed"
+							name="speed"
+							min="0"
+							max="200"
+							value="100"
+						/>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
 
-<!-- include 3x3 matrix math library -->
-<script src="lib/2d-math.js"></script>
+	<!-- include 3x3 matrix math library -->
+	<script src="lib/2d-math.js"></script>
+	<script src="lib/utils.js"></script>
 
-<script type="notjs" id="2d-vertex-shader">
-// Place Vertex Shader code here
-</script>
+	<script type="notjs" id="2d-vertex-shader">
+		in vec2 a_position;
+		uniform mat3 u_transform;
+		uniform vec2 u_resolution;
+		void main() {
+			vec2 transformed = (u_transform * vec3(a_position, 1)).xy; // in pixels
+			vec2 zeroToOne = transformed / u_resolution; // from 0 to 1
+			vec2 clip = zeroToOne * 2.0 - 1.0; // from -1 to 1
+			gl_Position = vec4(clip * vec2(1,-1), 0, 1); // flip y-axis direction
+		}
+	</script>
 
-<script type="notjs" id="2d-fragment-shader">
-// Place Fragment Shader code here
-</script>
+	<script type="notjs" id="2d-fragment-shader">
+		precision highp float;
+		out vec4 color;
+		uniform vec4 u_color;
+		void main() {
+			color = u_color;
+		}
+	</script>
 
-<script>
-// Place Javascript code here
-</script>
+	<script>
+		// Place Javascript code here
+		let then = 0;
+		let rotation = 0;
+		function drawScene(now) {
+			// set transformations
+			let matrix = m3.identity();
+			rotation += (now - then) * 0.00001 * parseFloat(speed.value);
+			matrix = m3.translate(matrix, 200, 200);
+			matrix = m3.rotate(matrix, rotation);
+			then = now;
+			console.log("now", now);
+			gl.uniformMatrix3fv(matrixUniformLocation, false, matrix);
+			// Tell WebGL how to convert from clip space to pixels
+			gl.canvas.width = gl.canvas.clientWidth;
+			gl.canvas.height = gl.canvas.clientHeight;
+			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
+			gl.uniform2f(
+				resolutionUniformLocation,
+				gl.canvas.width,
+				gl.canvas.height
+			);
+			// Clear the canvas
+			gl.clearColor(0, 0, 0, 0);
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+			// draw
+			let type = gl.TRIANGLES;
+			let offset = 0;
+			let count = 3;
+			gl.drawArrays(type, offset, count);
+			requestAnimationFrame(drawScene);
+		}
+		function main() {
+			let canvas = document.querySelector("#c");
+			let vertexShaderSource = document.getElementById("2d-vertex-shader")
+				.textContent;
+			let fragmentShaderSource = document.getElementById(
+				"2d-fragment-shader"
+			).textContent;
+			gl = canvas.getContext("webgl2");
+			if (!gl) {
+				return;
+			}
+			let vertexShader = createShader(
+				gl,
+				gl.VERTEX_SHADER,
+				vertexShaderSource
+			);
+			let fragmentShader = createShader(
+				gl,
+				gl.FRAGMENT_SHADER,
+				fragmentShaderSource
+			);
+			let program = createProgram(gl, vertexShader, fragmentShader);
+			// look up where the vertex data needs to go.
+			positionAttributeLocation = gl.getAttribLocation(
+				program,
+				"a_position"
+			);
+			colorUniformLocation = gl.getUniformLocation(program, "u_color");
+			matrixUniformLocation = gl.getUniformLocation(
+				program,
+				"u_transform"
+			);
+			resolutionUniformLocation = gl.getUniformLocation(
+				program,
+				"u_resolution"
+			);
+			// Create a buffer and put three 2d clip space points in it
+			let positionBuffer = gl.createBuffer();
+			// Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+			// Create a vertex array object (attribute state)
+			let vao = gl.createVertexArray();
+
+			// and make it the one we're currently working with
+			gl.bindVertexArray(vao);
+
+			// Turn on the attribute
+			gl.enableVertexAttribArray(positionAttributeLocation);
+
+			// Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+			let size = 2; // 2 components per iteration
+			let type = gl.FLOAT; // the data is 32bit floats
+			let normalize = false; // don't normalize the data
+			let stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
+			let offset = 0; // start at the beginning of the buffer
+			gl.vertexAttribPointer(
+				positionAttributeLocation,
+				size,
+				type,
+				normalize,
+				stride,
+				offset
+			);
+			// Tell it to use our program (pair of shaders)
+			gl.useProgram(program);
+
+			// geometric data
+			let points = [0, 0, 25, 100, 50, 0];
+			gl.bufferData(
+				gl.ARRAY_BUFFER,
+				new Float32Array(points),
+				gl.STATIC_DRAW
+			);
+			// color data
+			gl.uniform4f(colorUniformLocation, 0, 0, 0, 1);
+			requestAnimationFrame(drawScene);
+		}
+		main();
+	</script>
 </html>
