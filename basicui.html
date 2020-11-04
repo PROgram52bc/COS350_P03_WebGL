@@ -1,61 +1,245 @@
 <html>
-
-<style>
-/* Adding somewhat basic styling to page so the canvas fills the
+	<style>
+		/* Adding somewhat basic styling to page so the canvas fills the
    entire screen, and the options div hovers in top-right corner.
    NOTE: the generated image will be stretched!  To correct, see
    http://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
 */
-body {
-    margin: 0px;
-    overflow: hidden;
-}
-canvas {
-    background-color: white;
-    width: 100vw;
-    height: 100vh;
-    display: block;
-}
-div#ui {
-    position: fixed;
-    right: 0px;
-    top: 0px;
-    margin: 10px;
-    border: 1px solid rgb(128,128,128);
-    background-color: rgba(192,192,192,0.75);
-}
-div#ui table {
-    margin: 5px;
-}
-div#ui td *, div#ui th * {
-    width: 100%;
-}
-</style>
+		body {
+			margin: 0px;
+			overflow: hidden;
+		}
+		canvas {
+			background-color: white;
+			width: 100vw;
+			height: 100vh;
+			display: block;
+		}
+		div#ui {
+			position: fixed;
+			right: 0px;
+			top: 0px;
+			margin: 10px;
+			border: 1px solid rgb(128, 128, 128);
+			background-color: rgba(192, 192, 192, 0.75);
+		}
+		div#ui table {
+			margin: 5px;
+		}
+		div#ui td *,
+		div#ui th * {
+			width: 100%;
+		}
+	</style>
 
-<body>
-<canvas id="c"></canvas>
-<div id="ui">
-    <table>
-    <tr><th colspan="2">Options</th></tr>
-    <tr><td><label for="rng">Range</label></td><td><input type="range" id="rng" name="rng" min="0" max="100" value="20"></td></tr>
-    <tr><td><label for="dd">Dropdown</label></td><td><select id="dd" name="dd"><option value="0">zero</option><option value="1" selected>one</option><option value="2">two</option></select></td></tr>
-    <tr><td><label for="chk">Checkbox</label></td><td><input type="checkbox" id="chk" name="chk"></td></tr>
-    <tr><td colspan="2"><button onclick="alert('clicked!');">Button</button></td></tr>
-    </table>
-</div>
-</body>
+	<body>
+		<canvas id="c"></canvas>
+		<div id="ui">
+			<table>
+				<tr>
+					<th colspan="2">Options</th>
+				</tr>
+				<tr>
+					<td><label for="rng">Sides</label></td>
+					<td>
+						<input
+							type="range"
+							id="rng"
+							name="rng"
+							min="3"
+							max="100"
+							value="3"
+						/>
+					</td>
+				</tr>
+				<tr>
+					<td><label for="dd">Color</label></td>
+					<td>
+						<select id="dd" name="dd"
+							><option value="0">Red</option
+							><option value="1" selected>Green</option
+							><option value="2">Blue</option></select
+						>
+					</td>
+				</tr>
+				<tr>
+					<td><label for="chk">Preserve Ratio</label></td>
+					<td><input type="checkbox" id="chk" name="chk" /></td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<button id="bt3">Redraw</button>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+	<script src="lib/utils.js"></script>
 
+	<script type="notjs" id="2d-vertex-shader">
+		in vec4 a_position;
+		void main() {
+			gl_Position = a_position;
+		}
+	</script>
 
-<script type="notjs" id="2d-vertex-shader">
-// Place Vertex Shader code here
-</script>
+	<script type="notjs" id="2d-fragment-shader">
+		precision highp float;
+		out vec4 color;
+		uniform vec4 u_color;
+		void main() {
+			color = u_color;
+		}
+	</script>
 
-<script type="notjs" id="2d-fragment-shader">
-// Place Fragment Shader code here
-</script>
+	<script>
+		// Place Javascript code here
+		function handleRange(e) {
+			let sides = e.target.value;
+			setPolygon(sides);
+			drawScene();
+		}
+		function handleDropdown(e) {
+			setColor(e.target.value);
+			drawScene();
+		}
+		function handleCheck(e) {
+			let { checked } = e.target;
+			setRatio(checked);
+			drawScene();
+		}
+		function setRatio(ratio = chk.checked) {
+			if (ratio) {
+				let size = Math.min(gl.canvas.width, gl.canvas.height);
+				let x1 = (gl.canvas.width - size) / 2;
+				let y1 = (gl.canvas.height - size) / 2;
+				gl.viewport(x1, y1, size, size);
+			} else {
+				gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+			}
+		}
+		function setPolygon(sides) {
+			let points = [];
+			let point = [1, 0]; // starting point
+			for (let i = 0; i < sides; i++) {
+				let angle = ((i + 1) * (2 * Math.PI)) / sides;
+				points.push(0, 0); // center
+				points.push(...point);
+				point = [Math.cos(angle), Math.sin(angle)];
+				points.push(...point);
+			}
+			gl.bufferData(
+				gl.ARRAY_BUFFER,
+				new Float32Array(points),
+				gl.STATIC_DRAW
+			);
+		}
+		function setColor(colorCode) {
+			let color;
+			switch (parseInt(colorCode)) {
+				case 0:
+					color = [1, 0, 0];
+					break;
+				case 1:
+					color = [0, 1, 0];
+					break;
+				case 2:
+					color = [0, 0, 1];
+					break;
+				default:
+					color = [0, 0, 0];
+			}
+			gl.uniform4f(colorUniformLocation, ...color, 1);
+		}
+		function drawScene({
+			t = gl.TRIANGLES,
+			offset = 0,
+			count = rng.value * 3
+		} = {}) {
+			// Tell WebGL how to convert from clip space to pixels
+			gl.canvas.width = gl.canvas.clientWidth;
+			gl.canvas.height = gl.canvas.clientHeight;
+			setRatio();
 
-<script>
-// Place Javascript code here
-</script>
+			// Clear the canvas
+			gl.clearColor(0, 0, 0, 0);
+			gl.clear(gl.COLOR_BUFFER_BIT);
 
+			// draw
+			gl.drawArrays(t, offset, count);
+		}
+		function main() {
+			let canvas = document.querySelector("#c");
+			gl = canvas.getContext("webgl2");
+			rng.addEventListener("input", handleRange);
+			dd.addEventListener("change", handleDropdown);
+			chk.addEventListener("input", handleCheck);
+			bt3.addEventListener("click", function() {
+				drawScene();
+			});
+			let vertexShaderSource = document.getElementById("2d-vertex-shader")
+				.textContent;
+			let fragmentShaderSource = document.getElementById(
+				"2d-fragment-shader"
+			).textContent;
+			if (!gl) {
+				return;
+			}
+			let vertexShader = createShader(
+				gl,
+				gl.VERTEX_SHADER,
+				vertexShaderSource
+			);
+			let fragmentShader = createShader(
+				gl,
+				gl.FRAGMENT_SHADER,
+				fragmentShaderSource
+			);
+			let program = createProgram(gl, vertexShader, fragmentShader);
+			// look up where the vertex data needs to go.
+			positionAttributeLocation = gl.getAttribLocation(
+				program,
+				"a_position"
+			);
+			colorUniformLocation = gl.getUniformLocation(program, "u_color");
+			// Create a buffer and put three 2d clip space points in it
+			let positionBuffer = gl.createBuffer();
+			// Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+			// Create a vertex array object (attribute state)
+			let vao = gl.createVertexArray();
+
+			// and make it the one we're currently working with
+			gl.bindVertexArray(vao);
+
+			// Turn on the attribute
+			gl.enableVertexAttribArray(positionAttributeLocation);
+
+			// Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+			let size = 2; // 2 components per iteration
+			let type = gl.FLOAT; // the data is 32bit floats
+			let normalize = false; // don't normalize the data
+			let stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
+			let offset = 0; // start at the beginning of the buffer
+			gl.vertexAttribPointer(
+				positionAttributeLocation,
+				size,
+				type,
+				normalize,
+				stride,
+				offset
+			);
+			// Tell it to use our program (pair of shaders)
+			gl.useProgram(program);
+
+			// geometric data
+			setPolygon(rng.value);
+			setColor(dd.value);
+			drawScene();
+
+			// webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+		}
+		main();
+	</script>
 </html>

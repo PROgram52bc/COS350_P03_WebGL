@@ -15,6 +15,7 @@
 	<body>
 		<canvas id="c"></canvas>
 	</body>
+	<script src="lib/utils.js"></script>
 
 	<script type="notjs" id="2d-vertex-shader">
 		in vec4 position;
@@ -34,35 +35,6 @@
 
 	<script>
 		// Place Javascript code here
-		function addVersionToShaderSource(source) {
-			return "#version 300 es\n" + source;
-		}
-		function createShader(gl, type, source) {
-			source = addVersionToShaderSource(source);
-			var shader = gl.createShader(type); // type is 'gl.VERTEX_SHADER' or 'gl.FRAGMENT_SHADER'
-			gl.shaderSource(shader, source); // specify the shader source
-			gl.compileShader(shader); // compile the shader
-			var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-			if (success) {
-				return shader;
-			}
-			console.log("Failed to compile shader");
-			console.log(gl.getShaderInfoLog(shader));
-			gl.deleteShader(shader);
-		}
-		function createProgram(gl, vertexShader, fragmentShader) {
-			var program = gl.createProgram();
-			gl.attachShader(program, vertexShader);
-			gl.attachShader(program, fragmentShader);
-			gl.linkProgram(program);
-			var success = gl.getProgramParameter(program, gl.LINK_STATUS);
-			if (success) {
-				return program;
-			}
-			console.log(gl.getProgramInfoLog(program)); // eslint-disable-line
-			gl.deleteProgram(program);
-			return undefined;
-		}
 		function setColor(gl, colorLocation, color) {
 			gl.uniform4f(colorLocation, ...color);
 		}
