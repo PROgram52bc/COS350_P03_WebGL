@@ -1,0 +1,351 @@
+<html>
+	<style>
+		/* Adding somewhat basic styling to page so the canvas fills the
+   entire screen, and the options div hovers in top-right corner.
+   NOTE: the generated image will be stretched!  To correct, see
+   http://webglfundamentals.org/webgl/lessons/webgl-resizing-the-canvas.html
+*/
+		body {
+			margin: 0px;
+			overflow: hidden;
+		}
+		canvas {
+			background-color: white;
+			width: 100vw;
+			height: 100vh;
+			display: block;
+		}
+		div#ui {
+			position: fixed;
+			right: 0px;
+			top: 0px;
+			margin: 10px;
+			border: 1px solid rgb(128, 128, 128);
+			background-color: rgba(192, 192, 192, 0.75);
+		}
+		div#ui table {
+			margin: 5px;
+		}
+		div#ui td *,
+		div#ui th * {
+			width: 100%;
+		}
+	</style>
+
+	<body>
+		<canvas id="c"></canvas>
+	</body>
+
+	<!-- include 3x3 matrix math library -->
+	<script src="lib/3d-math.js"></script>
+	<script src="lib/utils.js"></script>
+	<script type="notjs" id="ply-texture-data">
+		ply
+		element vertex 4
+		property float32 x
+		property float32 y
+		element face 18
+		property list uint8 int32 vertex_index
+		end_header
+		0 0
+		0 1
+		1 0
+		1 1
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+		4 0 1 2 3
+	</script>
+	<script type="notjs" id="ply-data">
+		ply
+		element vertex 20
+		property float32 x
+		property float32 y
+		property float32 z
+		element face 18
+		property list uint8 int32 vertex_index
+		end_header
+		0  0  0
+		1  0  0
+		2  0  0
+		0  1  0
+		1  1  0
+		2  1  0
+		0  2  0
+		1  2  0
+		0  0  1
+		1  0  1
+		2  0  1
+		0  1  1
+		1  1  1
+		2  1  1
+		0  2  1
+		1  2  1
+		0  1  3
+		1  1  3
+		0  2  3
+		1  2  3
+		4  0  3  4  1
+		4  1  4  5  2
+		4  3  6  7  4
+		4  8  9 12 11
+		4  9 10 13 12
+		4 16 17 19 18
+		4  0  8 11  3
+		4  3 11 14  6
+		4 11 16 18 14
+		4  4 12 15  7
+		4 12 17 19 15
+		4  2 10 13  5
+		4  0  1  9  8
+		4  1  2 10  9
+		4 11 12 17 16
+		4  4  5 13 12
+		4  6  7 15 14
+		4 14 15 19 18
+	</script>
+
+	<script type="notjs" id="2d-vertex-shader">
+		in vec4 a_position;
+		in vec2 a_texture;
+		uniform mat4 u_matrix;
+		out vec2 v_texture;
+		void main() {
+			gl_Position = u_matrix * a_position;
+			v_texture = a_texture;
+		}
+	</script>
+
+	<script type="notjs" id="2d-fragment-shader">
+		precision highp float;
+		in vec2 v_texture;
+		out vec4 outColor;
+		uniform sampler2D u_texture;
+		uniform vec4 u_color;
+		void main() {
+			outColor = texture(u_texture, v_texture);
+		}
+	</script>
+
+	<script>
+		// Place Javascript code here
+		function drawScene(time) {
+			time *= 0.005;
+			// set transformations
+			let fieldOfViewRadians = Math.PI / 3;
+			let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+			let zNear = 1;
+			let zFar = 2000;
+			let projectionMatrix = m4.perspective(
+				fieldOfViewRadians,
+				aspect,
+				zNear,
+				zFar
+			);
+			let cameraPosition = [0, 1, 5];
+			let cameraTarget = [0, 0, 0];
+			let cameraUp = [0, 1, 0];
+			let cameraMatrix = m4.lookAt(
+				cameraPosition,
+				cameraTarget,
+				cameraUp
+			);
+			let viewMatrix = m4.inverse(cameraMatrix);
+
+			let matrix = m4.identity();
+			matrix = m4.multiply(matrix, projectionMatrix);
+			matrix = m4.multiply(matrix, viewMatrix);
+			matrix = m4.xRotate(matrix, time * 0.03);
+			matrix = m4.yRotate(matrix, time * 0.05);
+			matrix = m4.translate(matrix, -1, -1, -1.5);
+
+			gl.uniformMatrix4fv(locations.u_matrix, false, matrix);
+			// Tell WebGL how to convert from clip space to pixels
+			gl.canvas.width = gl.canvas.clientWidth;
+			gl.canvas.height = gl.canvas.clientHeight;
+			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+			// Clear the canvas
+			gl.clearColor(0, 0, 0, 0);
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+			// turn on depth testing
+			gl.enable(gl.DEPTH_TEST);
+
+			// draw
+			let count = 108;
+			gl.drawArrays(gl.TRIANGLES, 0, count);
+			requestAnimationFrame(drawScene);
+		}
+		function main() {
+			let canvas = document.querySelector("#c");
+			let vertexShaderSource = document.getElementById("2d-vertex-shader")
+				.textContent;
+			let fragmentShaderSource = document.getElementById(
+				"2d-fragment-shader"
+			).textContent;
+			gl = canvas.getContext("webgl2");
+			if (!gl) {
+				return;
+			}
+			let vertexShader = createShader(
+				gl,
+				gl.VERTEX_SHADER,
+				vertexShaderSource
+			);
+			let fragmentShader = createShader(
+				gl,
+				gl.FRAGMENT_SHADER,
+				fragmentShaderSource
+			);
+			let program = createProgram(gl, vertexShader, fragmentShader);
+			// look up where the vertex data needs to go.
+			const locationInfo = [
+				{
+					name: "a_position",
+					type: "attribute"
+				},
+				{
+					name: "a_texture",
+					type: "attribute"
+				},
+				{
+					name: "u_color",
+					type: "uniform"
+				},
+				{
+					name: "u_matrix",
+					type: "uniform"
+				},
+				{
+					name: "u_texture",
+					type: "uniform"
+				}
+			];
+			locations = lookupLocations(gl, program, locationInfo);
+			console.log("location", locations);
+			// Create a buffer and put three 2d clip space points in it
+			let positionBuffer = gl.createBuffer();
+			// Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+			// Create a vertex array object (attribute state)
+			let vao = gl.createVertexArray();
+
+			// and make it the one we're currently working with
+			gl.bindVertexArray(vao);
+
+			// Turn on the attribute
+			gl.enableVertexAttribArray(locations.a_position);
+
+			let size;
+			let type;
+			let normalize;
+			let stride;
+			let offset;
+			let data;
+
+			data = parsePly(document.getElementById("ply-data").textContent);
+			gl.bufferData(
+				gl.ARRAY_BUFFER,
+				new Float32Array(data),
+				gl.STATIC_DRAW
+			);
+
+			// geometric data
+			// Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+			size = 3; // 3 components per iteration
+			type = gl.FLOAT; // the data is 32bit floats
+			normalize = false; // don't normalize the data
+			stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
+			offset = 0; // start at the beginning of the buffer
+			gl.vertexAttribPointer(
+				locations.a_position,
+				size,
+				type,
+				normalize,
+				stride,
+				offset
+			);
+
+			// texture data
+			let textcoordBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, textcoordBuffer);
+			data = parsePly(
+				document.getElementById("ply-texture-data").textContent
+			);
+			console.log("data", data);
+			gl.bufferData(
+				gl.ARRAY_BUFFER,
+				new Float32Array(data),
+				gl.STATIC_DRAW
+			);
+			gl.enableVertexAttribArray(locations.a_texture);
+
+			// Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+			size = 2; // 2 components per iteration
+			type = gl.FLOAT; // the data is 32bit floats
+			normalize = true; // normalize the data
+			stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
+			offset = 0; // start at the beginning of the buffer
+			gl.vertexAttribPointer(
+				locations.a_texture,
+				size,
+				type,
+				normalize,
+				stride,
+				offset
+			);
+			gl.activeTexture(gl.TEXTURE0 + 0);
+
+			let texture = gl.createTexture();
+			gl.bindTexture(gl.TEXTURE_2D, texture);
+			gl.texImage2D(
+				gl.TEXTURE_2D,
+				0,
+				gl.RGBA,
+				1,
+				1,
+				0,
+				gl.RGBA,
+				gl.UNSIGNED_BYTE,
+				new Uint8Array([0, 0, 255, 255])
+			);
+			// texture data
+			let img = new Image();
+			img.crossOrigin = "anonymous";
+			img.src =
+				"https://3.bp.blogspot.com/-ZFkKEc_xmW0/U9F7oIOOIBI/AAAAAAAAFtY/ZfKI0K7lPnU/s1600/Brick+wall+building+texture+ver+7.jpg";
+			img.addEventListener("load", function() {
+				gl.texImage2D(
+					gl.TEXTURE_2D,
+					0,
+					gl.RGBA,
+					gl.RGBA,
+					gl.UNSIGNED_BYTE,
+					this
+				);
+				gl.generateMipmap(gl.TEXTURE_2D);
+			});
+
+			// Tell it to use our program (pair of shaders)
+			gl.useProgram(program);
+			drawScene();
+		}
+		main();
+	</script>
+</html>
